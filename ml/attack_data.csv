@@ -1,0 +1,10 @@
+attack_type,severity
+normal,low
+normal,low
+normal,low
+bruteforce,medium
+bruteforce,medium
+bruteforce,medium
+sqlinjection,high
+sqlinjection,high
+sqlinjection,high

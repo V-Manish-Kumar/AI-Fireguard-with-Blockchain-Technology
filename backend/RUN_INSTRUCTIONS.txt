@@ -1,0 +1,45 @@
+INTELLIGENT FIREWALL PROJECT – RUN INSTRUCTIONS
+
+STEP 1: Install Software
+- Install Python 3.10 or above
+- (Optional) Install VS Code
+
+STEP 2: Extract Project
+- Unzip intelligent-firewall.zip
+- Open the folder
+
+STEP 3: Create Virtual Environment
+Open Command Prompt / PowerShell in project folder and run:
+
+python -m venv .venv
+
+STEP 4: Activate Virtual Environment
+
+Windows:
+.venv\Scripts\activate
+
+STEP 5: Install Required Libraries
+
+pip install -r requirements.txt
+
+STEP 6: Create .env file (IMPORTANT)
+
+Create a file named .env in project root and add:
+
+INFURA_URL=your_infura_url
+PRIVATE_KEY=your_metamask_private_key
+CONTRACT_ADDRESS=your_contract_address
+
+(No quotes, no spaces)
+
+STEP 7: Run the Project
+
+python backend/app.py
+
+STEP 8: Open Browser and Test
+
+http://127.0.0.1:5000/
+http://127.0.0.1:5000/status
+http://127.0.0.1:5000/attack/ddos
+
+PROJECT IS NOW RUNNING SUCCESSFULLY
