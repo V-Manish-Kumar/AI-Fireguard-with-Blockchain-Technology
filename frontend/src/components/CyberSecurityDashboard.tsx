@@ -8,7 +8,7 @@ import { Shield, Activity, ExternalLink, CheckCircle, WifiOff } from 'lucide-rea
 const BACKEND_URL = (
   import.meta.env.VITE_BACKEND_URL 
     ? import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, "")
-    : (import.meta.env.PROD ? "/api" : "http://127.0.0.1:5000")
+    : (import.meta.env.PROD ? "https://ai-fireguard-backend.onrender.com" : "http://127.0.0.1:5000")
 );
 
 
