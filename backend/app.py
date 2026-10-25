@@ -159,6 +159,8 @@ def log_to_blockchain(event_type, event_data):
 @app.route("/")
 @app.route("/api")
 @app.route("/api/")
+@app.route("/api/index")
+@app.route("/api/index.py")
 def home():
     return jsonify({
         "status": "online",
