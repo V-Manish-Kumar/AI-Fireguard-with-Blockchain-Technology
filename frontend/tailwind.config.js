@@ -7,10 +7,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "#020617",
-        card: "#0f172a",
-        primary: "#22d3ee",
-        success: "#22c55e",
+        background: "#030712",
+        card: "#0b1329",
+        border: "#1e293b",
+        primary: {
+          DEFAULT: "#06b6d4",
+          foreground: "#ffffff",
+        },
+        muted: {
+          DEFAULT: "#1e293b",
+          foreground: "#94a3b8",
+        },
+        success: "#10b981",
+        warning: "#f59e0b",
         danger: "#ef4444",
       },
     },

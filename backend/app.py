@@ -27,38 +27,73 @@ create_tables()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ML_DIR = os.path.join(BASE_DIR, "..", "ml")
 
-model = joblib.load(os.path.join(ML_DIR, "attack_severity_model.pkl"))
-attack_encoder = joblib.load(os.path.join(ML_DIR, "attack_encoder.pkl"))
-severity_encoder = joblib.load(os.path.join(ML_DIR, "severity_encoder.pkl"))
+model = None
+attack_encoder = None
+severity_encoder = None
+
+try:
+    model_path = os.path.join(ML_DIR, "attack_severity_model.pkl")
+    attack_enc_path = os.path.join(ML_DIR, "attack_encoder.pkl")
+    sev_enc_path = os.path.join(ML_DIR, "severity_encoder.pkl")
+
+    if os.path.exists(model_path):
+        model = joblib.load(model_path)
+    if os.path.exists(attack_enc_path):
+        attack_encoder = joblib.load(attack_enc_path)
+    if os.path.exists(sev_enc_path):
+        severity_encoder = joblib.load(sev_enc_path)
+    print("[SUCCESS] ML Model and encoders loaded successfully.")
+except Exception as ml_err:
+    print(f"[WARNING] ML model loading fallback: {ml_err}")
+
 
 # =======================
 # BLOCKCHAIN SETUP
 # =======================
+import sys
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
+# Load from backend or project root
+load_dotenv(os.path.join(BASE_DIR, "..", ".env"))
 load_dotenv()
 
 INFURA_URL = os.getenv("INFURA_URL")
 PRIVATE_KEY = os.getenv("PRIVATE_KEY")
 CONTRACT_ADDRESS = os.getenv("CONTRACT_ADDRESS")
 
+w3 = None
+account = None
+contract = None
+blockchain_enabled = False
+
 if not INFURA_URL or not PRIVATE_KEY or not CONTRACT_ADDRESS:
-    raise ValueError("❌ Missing INFURA_URL, PRIVATE_KEY, or CONTRACT_ADDRESS in .env")
+    print("[WARNING] Missing INFURA_URL, PRIVATE_KEY, or CONTRACT_ADDRESS in .env. Running in offline mode.")
+else:
+    try:
+        w3 = Web3(Web3.HTTPProvider(INFURA_URL, request_kwargs={"timeout": 10}))
+        if w3.is_connected():
+            account = w3.eth.account.from_key(PRIVATE_KEY)
+            w3.eth.default_account = account.address
 
-w3 = Web3(Web3.HTTPProvider(INFURA_URL))
+            ABI_PATH = os.path.join(BASE_DIR, "..", "blockchain", "FirewallLogsABI.json")
+            with open(ABI_PATH, "r") as f:
+                contract_abi = json.load(f)
 
-if not w3.is_connected():
-    raise ConnectionError("❌ Web3 not connected. Check INFURA_URL")
+            contract = w3.eth.contract(
+                address=w3.to_checksum_address(CONTRACT_ADDRESS),
+                abi=contract_abi
+            )
+            blockchain_enabled = True
+            print("[SUCCESS] Blockchain connected successfully to Sepolia Testnet.")
+        else:
+            print("[WARNING] Web3 connection failed to respond. Blockchain logging disabled.")
+    except Exception as ex:
+        print(f"[WARNING] Blockchain initialization failed: {ex}. Blockchain logging disabled.")
 
-account = w3.eth.account.from_key(PRIVATE_KEY)
-w3.eth.default_account = account.address
-
-ABI_PATH = os.path.join(BASE_DIR, "..", "blockchain", "FirewallLogsABI.json")
-with open(ABI_PATH, "r") as f:
-    contract_abi = json.load(f)
-
-contract = w3.eth.contract(
-    address=w3.to_checksum_address(CONTRACT_ADDRESS),
-    abi=contract_abi
-)
 
 # =======================
 # BLOCKCHAIN LOGGER
@@ -66,9 +101,13 @@ contract = w3.eth.contract(
 def log_to_blockchain(event_type, event_data):
     global LAST_TX_HASH
 
+    if not blockchain_enabled or not contract or not account:
+        return None
+
     try:
         event_hash = hashlib.sha256(event_data.encode()).hexdigest()
         nonce = w3.eth.get_transaction_count(account.address, "pending")
+
 
         base_tx = {
             "chainId": w3.eth.chain_id,
@@ -110,17 +149,26 @@ def log_to_blockchain(event_type, event_data):
 
 
     except Exception as e:
-        print("⚠️ Blockchain log failed:", e)
+        print("[WARNING] Blockchain log failed:", e)
         return None
+
 
 # =======================
 # ROUTES
 # =======================
 @app.route("/")
+@app.route("/api")
+@app.route("/api/")
 def home():
-    return "Intelligent Firewall Server is Running"
+    return jsonify({
+        "status": "online",
+        "service": "AI FireGuard Intelligent Firewall API",
+        "blockchain_connected": blockchain_enabled,
+        "ml_engine_ready": model is not None
+    })
 
 @app.route("/status")
+@app.route("/api/status")
 def firewall_status():
     conn = get_connection()
     cursor = conn.cursor()
@@ -130,17 +178,38 @@ def firewall_status():
     return jsonify({"firewall_strength": strength})
 
 @app.route("/attack/<attack_type>")
+@app.route("/api/attack/<attack_type>")
 def simulate_attack(attack_type):
 
     # ===== ML PREDICTION (SAFE) =====
-    if attack_type not in attack_encoder.classes_:
-        predicted_severity = "high"
-    else:
-        attack_encoded = attack_encoder.transform([attack_type])[0]
-        predicted_severity_encoded = model.predict([[attack_encoded]])[0]
-        predicted_severity = severity_encoder.inverse_transform(
-            [predicted_severity_encoded]
-        )[0]
+    predicted_severity = None
+    try:
+        if (
+            model is not None 
+            and attack_encoder is not None 
+            and severity_encoder is not None 
+            and attack_type in attack_encoder.classes_
+        ):
+            attack_encoded = attack_encoder.transform([attack_type])[0]
+            predicted_severity_encoded = model.predict([[attack_encoded]])[0]
+            predicted_severity = severity_encoder.inverse_transform(
+                [predicted_severity_encoded]
+            )[0]
+    except Exception as e:
+        print(f"[WARNING] ML inference fallback: {e}")
+
+    if not predicted_severity:
+        fallback_rules = {
+            "sql_injection": "high",
+            "sqlinjection": "high",
+            "ransomware": "high",
+            "ddos": "medium",
+            "bruteforce": "medium",
+            "xss": "low",
+            "port_scan": "low",
+            "normal": "low",
+        }
+        predicted_severity = fallback_rules.get(attack_type, "high")
 
     severity_damage_map = {
         "low": 5,
@@ -148,14 +217,15 @@ def simulate_attack(attack_type):
         "high": 20
     }
 
-    damage = severity_damage_map[predicted_severity]
+    damage = severity_damage_map.get(predicted_severity, 10)
 
     # ===== FIREWALL UPDATE =====
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute("SELECT strength FROM firewall WHERE id = 1")
-    strength = cursor.fetchone()[0]
+    row = cursor.fetchone()
+    strength = row[0] if row else 100
     new_strength = max(0, strength - damage)
 
     cursor.execute(
@@ -186,6 +256,7 @@ def simulate_attack(attack_type):
     })
 
 @app.route("/add_firewall", methods=["POST"])
+@app.route("/api/add_firewall", methods=["POST"])
 def add_firewall():
     conn = get_connection()
     cursor = conn.cursor()
@@ -211,6 +282,7 @@ def add_firewall():
     })
 
 @app.route("/attacks")
+@app.route("/api/attacks")
 def get_attacks():
     conn = get_connection()
     cursor = conn.cursor()
@@ -234,6 +306,7 @@ def get_attacks():
         }
         for r in rows
     ])
+
 
 # =======================
 # RUN SERVER

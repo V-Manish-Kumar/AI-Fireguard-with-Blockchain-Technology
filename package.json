@@ -1,0 +1,22 @@
+{
+  "name": "ai-fireguard-blockchain",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-Powered Firewall with Blockchain Audit Ledger",
+  "scripts": {
+    "build": "npm --prefix frontend install && npm --prefix frontend run build",
+    "dev": "npm --prefix frontend run dev",
+    "lint": "npm --prefix frontend run lint"
+  },
+  "keywords": [
+    "firewall",
+    "cybersecurity",
+    "ai",
+    "machine-learning",
+    "blockchain",
+    "ethereum",
+    "sepolia"
+  ],
+  "author": "Prudviraj",
+  "license": "MIT"
+}

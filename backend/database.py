@@ -1,9 +1,21 @@
 import sqlite3
 import os
+import shutil
 
-# Always create database inside backend folder
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_NAME = os.path.join(BASE_DIR, "firewall.db")
+
+# On Vercel serverless environment, filesystem is read-only except /tmp
+if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+    DB_DIR = "/tmp"
+    DB_NAME = os.path.join(DB_DIR, "firewall.db")
+    seed_db = os.path.join(BASE_DIR, "firewall.db")
+    if not os.path.exists(DB_NAME) and os.path.exists(seed_db):
+        try:
+            shutil.copyfile(seed_db, DB_NAME)
+        except Exception:
+            pass
+else:
+    DB_NAME = os.path.join(BASE_DIR, "firewall.db")
 
 def get_connection():
     return sqlite3.connect(DB_NAME)

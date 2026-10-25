@@ -122,36 +122,55 @@ ai-fireguard-blockchain
 │   ├── attack_data.csv
 │
 ├── README.md
-└── requirements.tx
+└── requirements.txt
 
 ---
-▶ How to Run the Project
+🚀 Deploy to Vercel
+
+The repository includes native Vercel configuration (`vercel.json` + `api/index.py` serverless function + root `package.json`).
+
+### 1️⃣ Push to GitHub
+Push your repository to your GitHub account:
+```bash
+git add .
+git commit -m "Configure project for Vercel deployment"
+git push origin main
+```
+
+### 2️⃣ Import Project on Vercel
+1. Go to [vercel.com](https://vercel.com/) and click **Add New > Project**.
+2. Select your GitHub repository.
+3. Leave the **Root Directory** as `./` (default).
+4. In **Environment Variables**, add:
+   - `INFURA_URL`: Your Ethereum Sepolia Infura endpoint
+   - `PRIVATE_KEY`: Your MetaMask private key
+   - `CONTRACT_ADDRESS`: `0x82a09f0d6DbEA12F465e84E11D5043FB18532f7C`
+5. Click **Deploy**. Vercel will automatically build the frontend into `frontend/dist` and deploy the Python API under `/api`.
+
+---
+▶ How to Run Locally
 1️⃣ Clone the Repository
-Copy code
-
+```bash
 git clone https://github.com/yourusername/ai-fireguard-blockchain.git
+cd ai-fireguard-blockchain
+```
 2️⃣ Install Backend Dependencies
-Copy code
-
+```bash
 pip install -r requirements.txt
+```
 3️⃣ Run Backend Server
-Copy code
-
+```bash
 python backend/app.py
-Server will run at:
-Copy code
+```
+Server will run at: `http://127.0.0.1:5000`
 
-http://127.0.0.1:5000
 4️⃣ Run Frontend
-Copy code
-
-cd frontend
-npm install
+```bash
 npm run dev
-Open:
-Copy code
+```
+Open: `http://localhost:5173`
 
-http://localhost:5173
+
 ---
 🧪 Demo Workflow
 Open dashboard

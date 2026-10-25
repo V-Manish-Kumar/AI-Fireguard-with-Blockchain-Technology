@@ -48,12 +48,18 @@ model = DecisionTreeClassifier(
 model.fit(X, y)
 
 # =========================
-# SAVE MODEL & ENCODERS
-# =========================
+import sys
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 joblib.dump(model, os.path.join(BASE_DIR, "attack_severity_model.pkl"))
 joblib.dump(attack_encoder, os.path.join(BASE_DIR, "attack_encoder.pkl"))
 joblib.dump(severity_encoder, os.path.join(BASE_DIR, "severity_encoder.pkl"))
 
-print("✅ ML model and encoders trained & saved successfully")
+print("[SUCCESS] ML model and encoders trained & saved successfully")
 print("Known attack types:", list(attack_encoder.classes_))
 print("Known severity levels:", list(severity_encoder.classes_))
+
